@@ -37,14 +37,25 @@ const MAX_PAGES = 20;
         content: data.content
       });
 
-      data.links.forEach(link => {
-        if (
-          link.startsWith("https://www.nasa.gov") &&
-          !visited.has(link)
-        ) {
-          queue.push(link);
-        }
-      });
+        data.links.forEach(link => {
+    if (
+      link.startsWith("https://www.nasa.gov/") &&
+
+      // 👇 ADD YOUR FILTER HERE
+      (
+        link.includes("/news") ||
+        link.includes("/missions") ||
+        link.includes("/feature") ||
+        link.includes("/article")
+      ) &&
+
+      !link.includes("#") &&
+      !link.includes("mailto:") &&
+      !visited.has(link)
+    ) {
+      queue.push(link);
+    }
+  });
 
     } catch (err) {
       console.log("Failed:", url);
