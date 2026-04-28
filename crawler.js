@@ -6,7 +6,7 @@ const visited = new Set();
 const queue = [START_URL];
 const pages = [];
 
-const MAX_PAGES = 20;
+const MAX_PAGES = 100;
 
 (async () => {
   const browser = await puppeteer.launch();
