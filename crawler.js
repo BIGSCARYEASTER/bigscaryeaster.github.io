@@ -1,56 +1,58 @@
-const axios = require("axios");
-const cheerio = require("cheerio");
+const puppeteer = require("puppeteer");
 const fs = require("fs");
 
 const START_URL = "https://www.nasa.gov";
 const visited = new Set();
+const queue = [START_URL];
 const pages = [];
 
-const MAX_PAGES = 30; // keep small for demo
-
-async function crawl(url) {
-  if (visited.has(url) || visited.size >= MAX_PAGES) return;
-
-  visited.add(url);
-  console.log("Crawling:", url);
-
-  try {
-    const { data } = await axios.get(url);
-    const $ = cheerio.load(data);
-
-    const title = $("title").text();
-    const content = $("body").text().replace(/\s+/g, " ").trim();
-
-    pages.push({
-      url,
-      title,
-      content
-    });
-
-    $("a").each((i, el) => {
-      let link = $(el).attr("href");
-
-      if (!link) return;
-
-      // Convert relative → absolute
-      if (link.startsWith("/")) {
-        link = START_URL + link;
-      }
-
-      // Only crawl NASA domain
-      if (link.startsWith(START_URL)) {
-        crawl(link);
-      }
-    });
-
-  } catch (err) {
-    console.log("Failed:", url);
-  }
-}
+const MAX_PAGES = 20;
 
 (async () => {
-  await crawl(START_URL);
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+
+  while (queue.length && visited.size < MAX_PAGES) {
+    const url = queue.shift();
+    if (visited.has(url)) continue;
+
+    visited.add(url);
+    console.log("Crawling:", url);
+
+    try {
+      await page.goto(url, { waitUntil: "networkidle2" });
+
+      const data = await page.evaluate(() => {
+        return {
+          title: document.title,
+          content: document.body.innerText,
+          links: Array.from(document.querySelectorAll("a"))
+            .map(a => a.href)
+        };
+      });
+
+      pages.push({
+        url,
+        title: data.title,
+        content: data.content
+      });
+
+      data.links.forEach(link => {
+        if (
+          link.startsWith("https://www.nasa.gov") &&
+          !visited.has(link)
+        ) {
+          queue.push(link);
+        }
+      });
+
+    } catch (err) {
+      console.log("Failed:", url);
+    }
+  }
 
   fs.writeFileSync("index.json", JSON.stringify(pages, null, 2));
-  console.log("Saved index.json");
+
+  await browser.close();
+  console.log("Saved", pages.length, "pages");
 })();
