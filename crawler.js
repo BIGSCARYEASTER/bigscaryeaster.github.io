@@ -30,7 +30,8 @@ const MAX_PAGES = 20;
             .map(a => a.href)
         };
       });
-
+      console.log("Total links found:", data.links.length);
+      console.log("Sample links:", data.links.slice(0, 20));
       pages.push({
         url,
         title: data.title,
@@ -38,20 +39,27 @@ const MAX_PAGES = 20;
       });
 
         data.links.forEach(link => {
+
+  // ✅ ADD THIS FIRST (normalize relative links)
+  if (link.startsWith("/")) {
+    link = "https://www.nasa.gov" + link;
+  }
+
     if (
       link.startsWith("https://www.nasa.gov/") &&
-
-      // 👇 ADD YOUR FILTER HERE
       (
         link.includes("/news") ||
         link.includes("/missions") ||
         link.includes("/feature") ||
-        link.includes("/article")
+        link.includes("/article") ||
+        link.includes("/image-feature") ||
+        link.includes("/press-release") ||
+        link.includes("/blogs")
       ) &&
-
       !link.includes("#") &&
       !link.includes("mailto:") &&
-      !visited.has(link)
+      !visited.has(link) &&
+      !queue.includes(link)
     ) {
       queue.push(link);
     }
